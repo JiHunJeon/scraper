@@ -18,6 +18,10 @@ class ParserUsage
 
   end
 
+  def parser_for()
+
+  end
+
   # save DB after parsing the last post number
   def update_cafe_last_post_number
     page = get()

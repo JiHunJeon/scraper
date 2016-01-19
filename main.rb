@@ -8,8 +8,6 @@ parser = ParserUsage.new()
 
 parser.get_user_id_list
 
-
-
 #
 # cafe_list = Cafe.new()
 #
