@@ -18,18 +18,17 @@ class ParserUsage
 
   end
 
-  def parser_for()
+  def self.parser_for(site = {})
 
   end
 
   # save DB after parsing the last post number
   def update_cafe_last_post_number
-    page = get()
     puts page.css("span.p11 strong").text
   end
 
   def get_user_id_list
-    page = get()
+
     page.encoding ='euc-kr'
     view = page.css("table tr td.p-nick a").to_a
 
@@ -46,7 +45,12 @@ class ParserUsage
 
   end
 
-  def get
+  def load
+
+  end
+
+  def page
     @mechanize.get("#{@cafe_list.cafe_url}"+"#{@cafe_list.cafe_current_page_position}")
   end
 end
+
