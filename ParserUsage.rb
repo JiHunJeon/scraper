@@ -10,7 +10,7 @@ class ParserUsage
     @cafe_list.cafe_name = "specup"
     @cafe_list.cafe_current_page_position = "1"
     @cafe_list.cafe_current_post_position = "2"
-    @cafe_list.cafe_url = "http://cafe.naver.com/specup.cafe?iframe_url=/ArticleList.nhn%3Fsearch.boardtype=L%26search.questionTab=A%26search.clubid=15754634%26search.totalCount=151%26search.page="
+    @cafe_list.cafe_url = "http://cafe.naver.com/ArticleList.nhn?search.boardtype=L&search.questionTab=A&search.clubid=15754634&search.totalCount=151&search.page="
     #
     @mechanize = Mechanize.new {|a| a.ssl_version, a.verify_mode ='TLSv1',OpenSSL::SSL::VERIFY_NONE}
     @mechanize.user_agent_alias = 'Mac Safari'
@@ -26,7 +26,20 @@ class ParserUsage
 
   def get_user_id_list
     page = get()
-    puts page.search("td")
+    page.encoding ='euc-kr'
+    view = page.css("table tr td.p-nick a").to_a
+
+    v2 = Array.new
+    v2 = view.map do |v|
+        id = v["onclick"].split(",")
+        id[1].gsub!(/[^0-9A-Za-z.\-]/, '')
+    end
+
+    puts v2.uniq
+  end
+
+  def clean_overlap_data()
+
   end
 
   def get
