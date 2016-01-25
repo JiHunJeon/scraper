@@ -109,5 +109,9 @@ module CafeParser
     def page(url,current_page)
       @mechanize.get("#{url}"+"#{current_page}")
     end
+
+    def get_post
+
+    end
   end
 end
