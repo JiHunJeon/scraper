@@ -22,7 +22,7 @@ module CafeParser
       #dummy
       @cafe_list.name = "specup"
       @cafe_list.current_page = 1
-      @cafe_list.page = 2
+      @cafe_list.page = 15
       @cafe_list.url =
           "http://cafe.naver.com/ArticleList.nhn?search.boardtype=L&search.questionTab=A&search.clubid=15754634&search.totalCount=151&userDisplay=50&noticeHidden=true&search.page="
       #
@@ -45,6 +45,7 @@ module CafeParser
     def user_name_list
       name_list = Array.new()
       @list.each do |list|
+        calc_last_page(list.url,list.current_page)
         name_list.concat(get_list(list,:user_name)).uniq
       end
       name_list
@@ -63,25 +64,28 @@ module CafeParser
       tmp_list = Array.new()
       puts list.name
       puts list.url
-      while list.current_page <= list.page
-        if list.current_page%SLEEPPAGES != 0
-          puts list.current_page
-          if NaverParserV1.new.respond_to?(type)
-            list_info = [list.url,list.current_page]
-            tmp_list.concat(NaverParserV1.new.send(type, *list_info)).uniq
 
-            puts tmp_list.count
-            puts "========================================="
-          else
-            puts "dosen't exit method"
-            break
-          end
-          list.current_page += 1
+      while list.current_page <= list.page
+        wait if list.current_page%SLEEPPAGES == 0
+        puts list.current_page
+        if NaverParserV1.new.respond_to?(type)
+          list_info = [list.url,list.current_page]
+          tmp_list.concat(NaverParserV1.new.send(type, *list_info)).uniq
+          puts tmp_list.count
+          puts "========================================="
         else
-          sleep 1
+          puts "dosen't exit method"
+          break
         end
+        list.current_page += 1
       end
       tmp_list
+    end
+
+    # wait a seconds and puts msg
+    def wait
+      puts "wait a 5 seconds"
+      sleep(5)
     end
 
     def user_name(url,current_page)
@@ -109,9 +113,16 @@ module CafeParser
     def page(url,current_page)
       @mechanize.get("#{url}"+"#{current_page}")
     end
+    # save DB before parsing the last post number
+    def get_post(url,current_page)
+      page(url,current_page).css.text
+    end
 
-    def get_post
+    def calc_last_page(url,current_page)
+      post = get_post(url,current_page)
+      page = post/50
 
+      cafe = Cafe.create(url:url,post:post,page:page)
     end
   end
 end

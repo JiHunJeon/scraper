@@ -1,9 +1,14 @@
 require 'nokogiri'
 require 'open-uri'
 require 'mechanize'
+require_relative 'environment'
 require_relative 'Cafe'
 require_relative 'ParserUsage'
 require_relative 'parsers/NaverCafeParser'
+require_relative 'model/User'
+require_relative 'model/Cafe'
+
+
 
 # parser = ParserUsage.new()
 #

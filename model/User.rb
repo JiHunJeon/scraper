@@ -1,5 +1,4 @@
-require '../environment'
-
+require_relative '../environment'
 class User < ActiveRecord::Base
 end
 
