@@ -1,5 +1,5 @@
 class Cafe
-  attr_accessor :name,:url,:current_post, :current_page,:page
+  attr_accessor :name,:url,:current_post, :current_page,:page,:board_url
   attr_reader :last_post
   def initialize()
     @name= nil
@@ -10,6 +10,7 @@ class Cafe
     @last_date = nil
     @current_post = nil
     @current_page = nil
+    @board_url = nil
   end
 
   # def cafe_parsing_last_date_update ()

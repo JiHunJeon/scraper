@@ -1,7 +1,10 @@
 require 'nokogiri'
 require 'open-uri'
 require 'mechanize'
+require_relative 'model/User'
+require_relative 'model/Cafe'
 require_relative 'Cafe'
+
 
 module CafeParser
   class ParserUsage

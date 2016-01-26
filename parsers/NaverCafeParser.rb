@@ -1,7 +1,5 @@
 module CafeParser
   class NaverCafeParser < ParserUsage
-    attr_accessor :list
-
     def self.can_parse?(site)
       true
     end
@@ -20,23 +18,25 @@ module CafeParser
 
       @cafe_list = Cafe.new()
       #dummy
-      @cafe_list.name = "specup"
-      @cafe_list.current_page = 1
-      @cafe_list.page = 15
-      @cafe_list.url =
-          "http://cafe.naver.com/ArticleList.nhn?search.boardtype=L&search.questionTab=A&search.clubid=15754634&search.totalCount=151&userDisplay=50&noticeHidden=true&search.page="
-      #
-      @list.push(@cafe_list)
-
-      @cafe_list = Cafe.new()
-      #dummy
-      @cafe_list.name = "openuniversity"
+      @cafe_list.name = "스펙업"
       @cafe_list.current_page = 1
       @cafe_list.page = 2
+      @cafe_list.board_url =
+          "http://cafe.naver.com/ArticleList.nhn?search.boardtype=L&search.questionTab=A&search.clubid=15754634&search.totalCount=151&userDisplay=50&noticeHidden=true&search.page="
       @cafe_list.url =
-          "http://cafe.naver.com/ArticleList.nhn?search.boardtype=L&search.questionTab=A&search.clubid=23161524&search.totalCount=151&userDisplay=50&noticeHidden=true&search.page="
+          "http://cafe.naver.com/specup"
       #
       @list.push(@cafe_list)
+      #
+      # @cafe_list = Cafe.new()
+      # #dummy
+      # @cafe_list.name = "openuniversity"
+      # @cafe_list.current_page = 1
+      # @cafe_list.page = 2
+      # @cafe_list.url =
+      #     "http://cafe.naver.com/ArticleList.nhn?search.boardtype=L&search.questionTab=A&search.clubid=23161524&search.totalCount=151&userDisplay=50&noticeHidden=true&search.page="
+      # #
+      # @list.push(@cafe_list)
       @mechanize =
           Mechanize.new {|a| a.ssl_version, a.verify_mode ='TLSv1',OpenSSL::SSL::VERIFY_NONE}
       @mechanize.user_agent_alias = 'Mac Safari'
@@ -45,7 +45,7 @@ module CafeParser
     def user_name_list
       name_list = Array.new()
       @list.each do |list|
-        calc_last_page(list.url,list.current_page)
+
         name_list.concat(get_list(list,:user_name)).uniq
       end
       name_list
@@ -54,7 +54,8 @@ module CafeParser
     def user_id_list
       id_list = Array.new()
       @list.each do |list|
-        id_list.concat(get_list(list,:user_id)).uniq
+        update_cafe_info(list)
+       # id_list.concat(get_list(list,:user_id)).uniq
       end
       id_list
     end
@@ -63,13 +64,13 @@ module CafeParser
     def get_list(list,type)
       tmp_list = Array.new()
       puts list.name
-      puts list.url
+      puts list.board_url
 
       while list.current_page <= list.page
         wait if list.current_page%SLEEPPAGES == 0
         puts list.current_page
         if NaverParserV1.new.respond_to?(type)
-          list_info = [list.url,list.current_page]
+          list_info = [list.board_url,list.current_page]
           tmp_list.concat(NaverParserV1.new.send(type, *list_info)).uniq
           puts tmp_list.count
           puts "========================================="
@@ -88,8 +89,8 @@ module CafeParser
       sleep(5)
     end
 
-    def user_name(url,current_page)
-      raw = page(url,current_page)
+    def user_name(board_url,current_page)
+      raw = scrap(board_url,current_page)
       raw.encoding = "euc-kr"
       extraction = raw.css("td.p-nick a").to_a
 
@@ -100,8 +101,8 @@ module CafeParser
       user_name.uniq
     end
 
-    def user_id(url,current_page)
-      extraction = page(url,current_page).css("td.p-nick a").to_a
+    def user_id(board_url,current_page)
+      extraction = scrap(board_url,current_page).css("td.p-nick a").to_a
 
       user_id = extraction.map do |v|
         id = v["onclick"].split(",")
@@ -110,19 +111,46 @@ module CafeParser
       user_id.uniq
     end
 
-    def page(url,current_page)
+    def scrap(url,current_page = nil)
       @mechanize.get("#{url}"+"#{current_page}")
     end
+
     # save DB before parsing the last post number
-    def get_post(url,current_page)
-      page(url,current_page).css.text
+    def get_post(url)
+      scrap(url).search("span.p11 strong").text.delete(',').to_i
     end
 
-    def calc_last_page(url,current_page)
-      post = get_post(url,current_page)
-      page = post/50
+    def get_page(post)
+      post / 50
+    end
 
-      cafe = Cafe.create(url:url,post:post,page:page)
+    def get_club_id(url)
+      extraction = scrap(url).css("script").to_a
+      parse = extraction[0].to_s.split(";")
+      /\d+/.match(parse[3])
+    end
+
+    def update_cafe_info(cafe)
+      post = get_post(cafe.url)
+      page = get_page(post)
+      club_id = get_club_id(cafe.url)
+      board_url = get_board_url(club_id)
+
+      puts "boardUrl: #{board_url}"
+      puts "page : #{page}"
+
+      update_cafe = Cafe.find_by(name: cafe.name)
+      update_cafe.fucking = page
+      update_cafe.page = page
+       update_cafe.post = post
+       update_cafe.board_url = board_urlq
+      #
+       update_cafe.save
+      # update_cafe.update(page: page)
+    end
+
+    def get_board_url(club_id)
+      "http://cafe.naver.com/ArticleList.nhn?search.boardtype=L&search.questionTab=A&search.clubid=#{club_id}&search.totalCount=151&userDisplay=50&noticeHidden=true&search.page="
     end
   end
 end
