@@ -9,4 +9,6 @@ ActiveRecord::Base.establish_connection(
     :password => "relifer2015"
 )
 
+ActiveRecord::Base.default_timezone = :local
+
 

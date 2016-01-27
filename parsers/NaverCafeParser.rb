@@ -12,31 +12,11 @@ module CafeParser
 
   class NaverParserV1
     SLEEPPAGES = 10 # sleep할 페이지 수
+    PAGES = 1000
+    LIMITPAGES = 0
 
     def initialize
-      @list = Array.new()
-
-      @cafe_list = Cafe.new()
-      #dummy
-      @cafe_list.name = "스펙업"
-      @cafe_list.current_page = 1
-      @cafe_list.page = 2
-      @cafe_list.board_url =
-          "http://cafe.naver.com/ArticleList.nhn?search.boardtype=L&search.questionTab=A&search.clubid=15754634&search.totalCount=151&userDisplay=50&noticeHidden=true&search.page="
-      @cafe_list.url =
-          "http://cafe.naver.com/specup"
-      #
-      @list.push(@cafe_list)
-      #
-      # @cafe_list = Cafe.new()
-      # #dummy
-      # @cafe_list.name = "openuniversity"
-      # @cafe_list.current_page = 1
-      # @cafe_list.page = 2
-      # @cafe_list.url =
-      #     "http://cafe.naver.com/ArticleList.nhn?search.boardtype=L&search.questionTab=A&search.clubid=23161524&search.totalCount=151&userDisplay=50&noticeHidden=true&search.page="
-      # #
-      # @list.push(@cafe_list)
+      @list = Cafe.all
       @mechanize =
           Mechanize.new {|a| a.ssl_version, a.verify_mode ='TLSv1',OpenSSL::SSL::VERIFY_NONE}
       @mechanize.user_agent_alias = 'Mac Safari'
@@ -45,41 +25,57 @@ module CafeParser
     def user_name_list
       name_list = Array.new()
       @list.each do |list|
-
         name_list.concat(get_list(list,:user_name)).uniq
       end
-      name_list
     end
 
     def user_id_list
       id_list = Array.new()
       @list.each do |list|
-        update_cafe_info(list)
-       # id_list.concat(get_list(list,:user_id)).uniq
+        update_list = update_cafe_info(list)
+        if update_list.page <= update_list.last_page
+          next
+        else
+         id_list.concat(get_list(update_list,:user_id)).uniq
+        end
       end
-      id_list
+
     end
 
     # to sleep during 1second after get list.
     def get_list(list,type)
       tmp_list = Array.new()
-      puts list.name
-      puts list.board_url
 
-      while list.current_page <= list.page
-        wait if list.current_page%SLEEPPAGES == 0
-        puts list.current_page
+      limit_pages |= 0
+      if list.page < PAGES
+        limit_pages = list.page
+      else
+        limit_pages = PAGES
+      end
+      while list.last_page <= limit_pages
+        if list.last_page%SLEEPPAGES == 0
+          insert_user_id(tmp_list)
+          tmp_list.clear
+          wait
+        else
+        end
+
         if NaverParserV1.new.respond_to?(type)
-          list_info = [list.board_url,list.current_page]
+          list_info = [list.board_url,list.last_page]
           tmp_list.concat(NaverParserV1.new.send(type, *list_info)).uniq
-          puts tmp_list.count
+          puts "cafe name: #{list.name}"
+          puts "current page: #{list.last_page}"
+          puts "parsing data number : #{tmp_list.count}"
           puts "========================================="
         else
           puts "dosen't exit method"
           break
         end
-        list.current_page += 1
+        list.last_page += 1
       end
+
+      cafe = Cafe.find_by(name: list.name)
+      cafe.update(last_page: list.last_page,last_scrap: Time.now)
       tmp_list
     end
 
@@ -87,6 +83,14 @@ module CafeParser
     def wait
       puts "wait a 5 seconds"
       sleep(5)
+    end
+
+    def insert_user_id(list)
+      puts "insert user id in the table"
+      list.uniq.each_with_index do |t,index|
+        User.create(platform: "naver", user_id: t)
+        print index
+      end
     end
 
     def user_name(board_url,current_page)
@@ -131,22 +135,34 @@ module CafeParser
     end
 
     def update_cafe_info(cafe)
+      update_cafe = Cafe.find_by(name: cafe.name)
+      param |= nil
+      if !update_cafe.board_url
+        param = insert_addition_cafe_info(cafe)
+        puts "cafe name:#{cafe.name}" + param
+      else
+        param =  update_addition_cafe_info(cafe)
+        puts "cafe name:#{cafe.name}" + param
+      end
+      query = "update caves set #{param} where name = '#{cafe.name}'"
+      results = Cafe.connection.execute(query)
+
+     return  Cafe.find_by(name: cafe.name)
+    end
+
+    def update_addition_cafe_info(cafe)
+      post = get_post(cafe.url)
+      page = get_page(post)
+
+      return  "post= '#{post}', page= '#{page}'"
+    end
+
+    def insert_addition_cafe_info(cafe)
       post = get_post(cafe.url)
       page = get_page(post)
       club_id = get_club_id(cafe.url)
       board_url = get_board_url(club_id)
-
-      puts "boardUrl: #{board_url}"
-      puts "page : #{page}"
-
-      update_cafe = Cafe.find_by(name: cafe.name)
-      update_cafe.fucking = page
-      update_cafe.page = page
-       update_cafe.post = post
-       update_cafe.board_url = board_urlq
-      #
-       update_cafe.save
-      # update_cafe.update(page: page)
+      return  "post= '#{post}', page= '#{page}', club_id= '#{club_id}', board_url= '#{board_url}'"
     end
 
     def get_board_url(club_id)

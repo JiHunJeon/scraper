@@ -12,6 +12,5 @@ require_relative 'parsers/NaverCafeParser'
 #
 # parser.get_user_id_list
 
-
 naver = CafeParser::ParserUsage.parser_for(:naver)
 naver.user_id_list

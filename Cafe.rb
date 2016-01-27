@@ -1,4 +1,4 @@
-class Cafe
+class CafeList
   attr_accessor :name,:url,:current_post, :current_page,:page,:board_url
   attr_reader :last_post
   def initialize()
