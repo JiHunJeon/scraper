@@ -81,8 +81,8 @@ module CafeParser
 
     # wait a seconds and puts msg
     def wait
-      puts "wait a 5 seconds"
-      sleep(5)
+      puts "wait a 2 seconds"
+      sleep(2)
     end
 
     def insert_user_id(list)
@@ -137,6 +137,7 @@ module CafeParser
     def update_cafe_info(cafe)
       update_cafe = Cafe.find_by(name: cafe.name)
       param |= nil
+      wait
       if !update_cafe.board_url
         param = insert_addition_cafe_info(cafe)
         puts "cafe name:#{cafe.name}" + param
